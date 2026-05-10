@@ -106,27 +106,71 @@ class TTSEngine:
             return False
 
     def split_text_into_chunks(self, text: str, chunk_size: int = 2000) -> List[str]:
+        import re
         text = text.strip()
 
         if len(text) <= chunk_size:
             return [text]
+
+        def split_paragraph(para: str) -> List[str]:
+            """Split a paragraph that exceeds chunk_size by sentences, then by words."""
+            if len(para) <= chunk_size:
+                return [para]
+
+            # Split by sentence endings
+            sentences = re.split(r'(?<=[.!?])\s+', para)
+            result = []
+            current = ""
+            for sent in sentences:
+                if len(sent) > chunk_size:
+                    # Single sentence too long — split by words
+                    if current:
+                        result.append(current.strip())
+                        current = ""
+                    words = sent.split()
+                    for word in words:
+                        if len(current) + len(word) + 1 > chunk_size:
+                            if current:
+                                result.append(current.strip())
+                            current = word
+                        else:
+                            current = (current + " " + word).strip()
+                elif len(current) + len(sent) + 1 > chunk_size:
+                    if current:
+                        result.append(current.strip())
+                    current = sent
+                else:
+                    current = (current + " " + sent).strip()
+            if current:
+                result.append(current.strip())
+            return result
 
         paragraphs = text.split('\n\n')
         chunks = []
         current_chunk = ""
 
         for para in paragraphs:
-            if len(current_chunk) + len(para) <= chunk_size:
-                current_chunk += para + "\n\n"
+            para = para.strip()
+            if not para:
+                continue
+
+            if len(para) > chunk_size:
+                # Flush current buffer first
+                if current_chunk:
+                    chunks.append(current_chunk.strip())
+                    current_chunk = ""
+                chunks.extend(split_paragraph(para))
+            elif len(current_chunk) + len(para) + 2 <= chunk_size:
+                current_chunk = (current_chunk + "\n\n" + para).strip() if current_chunk else para
             else:
                 if current_chunk:
                     chunks.append(current_chunk.strip())
-                current_chunk = para + "\n\n"
+                current_chunk = para
 
         if current_chunk:
             chunks.append(current_chunk.strip())
 
-        return chunks
+        return [c for c in chunks if c]
 
     async def _generate_edge_async(self, text: str, output_path: str) -> bool:
         """Generar audio con Edge TTS (neural, masculino, latinoamericano)"""
