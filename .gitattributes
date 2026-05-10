@@ -1,0 +1,26 @@
+# Normalizar line endings: LF en el repo, CRLF en Windows al hacer checkout
+* text=auto
+
+# Scripts Python y Dart — siempre LF
+*.py    text eol=lf
+*.dart  text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
+*.md    text eol=lf
+*.txt   text eol=lf
+*.json  text eol=lf
+*.toml  text eol=lf
+
+# Scripts Windows — CRLF
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# Binarios — sin conversión
+*.onnx  binary
+*.bin   binary
+*.exe   binary
+*.dll   binary
+*.png   binary
+*.ico   binary
+*.mp3   binary
+*.wav   binary
