@@ -19,20 +19,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ---------- Configurar ffmpeg para pydub ----------
-def _setup_ffmpeg():
-    try:
-        from pydub import AudioSegment
-        parent = Path(__file__).parent.parent.parent
-        candidates = list(parent.glob("ffmpeg*/bin/ffmpeg.exe"))
-        if candidates:
-            ffmpeg_path = str(candidates[0])
-            AudioSegment.converter = ffmpeg_path
-            AudioSegment.ffmpeg = ffmpeg_path
-            logger.info(f"ffmpeg configurado: {ffmpeg_path}")
-    except Exception as e:
-        logger.warning(f"No se pudo configurar ffmpeg: {e}")
-
-_setup_ffmpeg()
+try:
+    from ffmpeg_setup import configure_pydub
+    configure_pydub()
+except ImportError:
+    pass
 
 # ---------- App ----------
 app = FastAPI(title="TTS Studio API", version="1.0.0")

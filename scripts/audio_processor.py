@@ -5,8 +5,10 @@ import os
 import logging
 from typing import List
 from pydub import AudioSegment
+from ffmpeg_setup import configure_pydub
 
 logger = logging.getLogger(__name__)
+configure_pydub()
 
 
 class AudioProcessor:
