@@ -142,3 +142,158 @@ class TTSService {
     return res.bodyBytes;
   }
 }
+
+// ---------- Batch models ----------
+
+enum BatchMode { reels, longVideo }
+
+class ChunkResult {
+  final int index;
+  final String filename;
+  final int chars;
+  final double durationSeconds;
+  final String status;
+
+  const ChunkResult({
+    required this.index,
+    required this.filename,
+    required this.chars,
+    required this.durationSeconds,
+    required this.status,
+  });
+
+  factory ChunkResult.fromJson(Map<String, dynamic> j) => ChunkResult(
+        index: j['index'],
+        filename: j['filename'],
+        chars: j['chars'],
+        durationSeconds: (j['duration_seconds'] as num).toDouble(),
+        status: j['status'],
+      );
+
+  String get durationLabel {
+    final mins = (durationSeconds ~/ 60);
+    final secs = (durationSeconds % 60).toInt();
+    if (mins > 0) return '${mins}m ${secs}s';
+    return '${durationSeconds.toStringAsFixed(1)}s';
+  }
+}
+
+class BatchJobStatus {
+  final String jobId;
+  final String status;
+  final int totalChunks;
+  final int completedChunks;
+  final int failedChunks;
+  final List<ChunkResult> chunks;
+  final double elapsedSeconds;
+  final double? etaSeconds;
+  final String outputDir;
+
+  const BatchJobStatus({
+    required this.jobId,
+    required this.status,
+    required this.totalChunks,
+    required this.completedChunks,
+    required this.failedChunks,
+    required this.chunks,
+    required this.elapsedSeconds,
+    required this.etaSeconds,
+    required this.outputDir,
+  });
+
+  factory BatchJobStatus.fromJson(Map<String, dynamic> j) => BatchJobStatus(
+        jobId: j['job_id'],
+        status: j['status'],
+        totalChunks: j['total_chunks'],
+        completedChunks: j['completed_chunks'],
+        failedChunks: j['failed_chunks'],
+        chunks: (j['chunks'] as List)
+            .map((c) => ChunkResult.fromJson(c as Map<String, dynamic>))
+            .toList(),
+        elapsedSeconds: (j['elapsed_seconds'] as num).toDouble(),
+        etaSeconds: j['eta_seconds'] != null
+            ? (j['eta_seconds'] as num).toDouble()
+            : null,
+        outputDir: j['output_dir'],
+      );
+
+  double get progressFraction =>
+      totalChunks > 0 ? completedChunks / totalChunks : 0;
+
+  String get etaLabel {
+    if (etaSeconds == null) return 'Calculando...';
+    final mins = (etaSeconds! ~/ 60).toInt();
+    final secs = (etaSeconds! % 60).toInt();
+    if (mins > 0) return '~${mins}m ${secs}s restantes';
+    return '~${secs}s restantes';
+  }
+
+  String get elapsedLabel {
+    final mins = (elapsedSeconds ~/ 60).toInt();
+    final secs = (elapsedSeconds % 60).toInt();
+    if (mins > 0) return '${mins}m ${secs}s';
+    return '${secs}s';
+  }
+
+  bool get isDone => status == 'done' || status == 'cancelled' || status == 'error';
+}
+
+class BatchService {
+  static String chunkAudioUrl(String jobId, String filename) =>
+      '$_baseUrl/api/jobs/$jobId/audio/$filename';
+
+  static Future<Map<String, dynamic>> startBatch({
+    required String text,
+    required BatchMode mode,
+    required String engine,
+    required String voice,
+    required double speed,
+    String outputName = 'batch',
+  }) async {
+    final modeStr = mode == BatchMode.reels ? 'reels' : 'long_video';
+    final res = await http
+        .post(
+          Uri.parse('$_baseUrl/api/batch'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'text': text,
+            'mode': modeStr,
+            'engine': engine,
+            'voice': voice,
+            'speed': speed,
+            'output_name': outputName,
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (res.statusCode != 200) {
+      final err = jsonDecode(res.body)['detail'] ?? 'Error iniciando batch';
+      throw Exception(err);
+    }
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  static Future<BatchJobStatus> pollJob(String jobId) async {
+    final res = await http
+        .get(Uri.parse('$_baseUrl/api/jobs/$jobId'))
+        .timeout(const Duration(seconds: 10));
+
+    if (res.statusCode != 200) throw Exception('Error consultando job');
+    return BatchJobStatus.fromJson(
+        jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  static Future<void> cancelJob(String jobId) async {
+    await http
+        .delete(Uri.parse('$_baseUrl/api/jobs/$jobId'))
+        .timeout(const Duration(seconds: 10));
+  }
+
+  static Future<Uint8List> downloadChunk(String jobId, String filename) async {
+    final url = chunkAudioUrl(jobId, filename);
+    final res =
+        await http.get(Uri.parse(url)).timeout(const Duration(minutes: 2));
+    if (res.statusCode != 200) throw Exception('Error descargando chunk');
+    return res.bodyBytes;
+  }
+}
