@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../services/tts_service.dart';
 import '../widgets/audio_result_card.dart';
+import 'batch_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -158,6 +159,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      _buildModeSelector(scheme),
+                      const SizedBox(height: 24),
                       _buildTextInput(scheme),
                       const SizedBox(height: 24),
                       _buildSettings(scheme),
@@ -225,6 +228,73 @@ class _HomeScreenState extends State<HomeScreen> {
     ).animate().fadeIn();
   }
 
+  void _goToBatch(BatchMode mode) {
+    if (_engines.isEmpty) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BatchScreen(
+          mode: mode,
+          engines: _engines,
+          initialEngine: _selectedEngine,
+          initialVoice: _selectedVoice,
+          initialSpeed: _speed,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModeSelector(ColorScheme scheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Modo de generacion',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _ModeCard(
+                icon: Icons.audio_file,
+                title: 'Audio simple',
+                subtitle: 'Un solo archivo\nhasta 10.000 chars',
+                selected: true,
+                onTap: null,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _ModeCard(
+                icon: Icons.video_camera_back,
+                title: 'Reels',
+                subtitle: '≤2:30 por clip\nsin limite de texto',
+                selected: false,
+                onTap: _engines.isNotEmpty
+                    ? () => _goToBatch(BatchMode.reels)
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _ModeCard(
+                icon: Icons.movie,
+                title: 'Video Largo',
+                subtitle: '≤5:00 por clip\nsin limite de texto',
+                selected: false,
+                onTap: _engines.isNotEmpty
+                    ? () => _goToBatch(BatchMode.longVideo)
+                    : null,
+              ),
+            ),
+          ],
+        ),
+      ],
+    ).animate().fadeIn(delay: 50.ms);
+  }
+
   Widget _buildTextInput(ColorScheme scheme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,7 +308,6 @@ class _HomeScreenState extends State<HomeScreen> {
         TextField(
           controller: _textController,
           maxLines: 10,
-          maxLength: 10000,
           decoration: InputDecoration(
             hintText: 'Escribe o pega el texto que quieres narrar...',
             filled: true,
@@ -404,5 +473,86 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     ).animate().shakeX();
+  }
+}
+
+class _ModeCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  const _ModeCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final disabled = onTap == null && !selected;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: selected
+              ? scheme.primaryContainer
+              : disabled
+                  ? scheme.surfaceContainerHighest.withValues(alpha: 0.5)
+                  : scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected
+                ? scheme.primary
+                : scheme.outline.withValues(alpha: 0.3),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              icon,
+              size: 22,
+              color: selected
+                  ? scheme.onPrimaryContainer
+                  : disabled
+                      ? scheme.onSurface.withValues(alpha: 0.3)
+                      : scheme.primary,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: selected
+                    ? scheme.onPrimaryContainer
+                    : disabled
+                        ? scheme.onSurface.withValues(alpha: 0.3)
+                        : scheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 11,
+                color: selected
+                    ? scheme.onPrimaryContainer.withValues(alpha: 0.8)
+                    : scheme.onSurface.withValues(alpha: disabled ? 0.3 : 0.6),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
