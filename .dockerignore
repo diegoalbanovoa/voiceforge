@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+models/
+audios/
+logs/
+*.log
+.git/
+flutter_app/
+notebooks/
+historias/

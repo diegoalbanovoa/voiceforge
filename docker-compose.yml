@@ -1,0 +1,19 @@
+services:
+  tts-api:
+    build: .
+    container_name: tts-studio-api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Modelos montados como volumen (no se incluyen en la imagen)
+      - ./models:/app/models:ro
+      # Audios generados persistidos en el host
+      - ./audios:/app/audios
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

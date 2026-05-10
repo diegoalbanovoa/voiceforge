@@ -1,0 +1,45 @@
+tts:
+  engine: "kokoro"          # kokoro | piper | edge | google
+  language: "es"
+  speed: 1.1                # kokoro/piper: 1.0 normal, 1.1-1.2 rapido | edge: "+15%"
+
+voices:
+  # --- Kokoro (local, alta calidad, 310MB) ---
+  # em_alex    (espanol masculino) <-- ACTIVO
+  # em_santa   (espanol masculino, alternativa)
+  # ef_dora    (espanol femenino)
+  kokoro: "em_alex"
+
+  # --- Piper (local, rapido, menos natural) ---
+  # es_MX-claude-high, es_MX-ald-medium
+  piper: "models/piper/es_MX-claude-high.onnx"
+
+  # --- Edge TTS (online, neural Microsoft) ---
+  # es-MX-JorgeNeural, es-CO-GonzaloNeural, es-AR-TomasNeural
+  edge: "es-MX-JorgeNeural"
+  google: "es"
+
+audio:
+  format: "mp3"
+  bitrate: "128k"
+  sample_rate: 22050
+
+processing:
+  normalize_volume: true
+  compression: true
+  max_silence_duration: 500
+
+paths:
+  input_dir: "./historias"
+  output_dir: "./audios"
+  models_dir: "./models"
+  logs_dir: "./logs"
+
+performance:
+  chunk_size: 2000
+  parallel_processing: false
+  cache_results: true
+
+logging:
+  level: "INFO"
+  file: "./logs/tts.log"

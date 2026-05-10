@@ -1,0 +1,73 @@
+# ============================================================
+# Python
+# ============================================================
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.env
+.env.*
+pip-log.txt
+
+# ============================================================
+# Modelos de IA (demasiado grandes para git — ver README)
+# ============================================================
+models/kokoro/*.onnx
+models/kokoro/*.bin
+models/piper/*.onnx
+models/silero/
+
+# ============================================================
+# Audios generados (output, no son código fuente)
+# ============================================================
+audios/**/*.mp3
+audios/**/*.wav
+audios/**/metadata.json
+audios/**/reporte.json
+
+# ============================================================
+# Logs
+# ============================================================
+logs/*.log
+*.log
+
+# ============================================================
+# Flutter / Dart
+# ============================================================
+flutter_app/build/
+flutter_app/.dart_tool/
+flutter_app/.flutter-plugins
+flutter_app/.flutter-plugins-dependencies
+flutter_app/.packages
+flutter_app/pubspec.lock
+
+# ============================================================
+# Binarios compilados (el .exe se genera con flutter build)
+# ============================================================
+*.exe
+*.dll
+*.lib
+*.exp
+*.pdb
+
+# ============================================================
+# Windows
+# ============================================================
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ============================================================
+# IDEs
+# ============================================================
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
