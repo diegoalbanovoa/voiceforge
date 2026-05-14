@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:file_saver/file_saver.dart';
@@ -6,11 +7,15 @@ import '../services/tts_service.dart';
 class BatchResultList extends StatefulWidget {
   final String jobId;
   final List<ChunkResult> chunks;
+  final String? outputFolder;
+  final String baseName;
 
   const BatchResultList({
     super.key,
     required this.jobId,
     required this.chunks,
+    this.outputFolder,
+    this.baseName = '',
   });
 
   @override
@@ -42,19 +47,46 @@ class _BatchResultListState extends State<BatchResultList> {
     });
   }
 
+  String _buildFileName(ChunkResult chunk) {
+    final isWav = chunk.filename.endsWith('.wav');
+    final ext = isWav ? 'wav' : 'mp3';
+    final base = widget.baseName.trim().isNotEmpty
+        ? '${widget.baseName.trim()}_parte_${chunk.index}'
+        : chunk.filename.replaceAll(RegExp(r'\.(wav|mp3)$'), '');
+    return '$base.$ext';
+  }
+
   Future<void> _download(ChunkResult chunk) async {
     setState(() => _downloading.add(chunk.filename));
     try {
       final bytes =
           await BatchService.downloadChunk(widget.jobId, chunk.filename);
       final isWav = chunk.filename.endsWith('.wav');
-      await FileSaver.instance.saveFile(
-        name: chunk.filename.replaceAll(RegExp(r'\.(wav|mp3)$'), ''),
-        bytes: bytes,
-        ext: isWav ? 'wav' : 'mp3',
-        mimeType: isWav ? MimeType.other : MimeType.mp3,
-        customMimeType: isWav ? 'audio/wav' : null,
-      );
+      final ext = isWav ? 'wav' : 'mp3';
+      final base = widget.baseName.trim().isNotEmpty
+          ? '${widget.baseName.trim()}_parte_${chunk.index}'
+          : chunk.filename.replaceAll(RegExp(r'\.(wav|mp3)$'), '');
+
+      if (widget.outputFolder != null) {
+        final file = File('${widget.outputFolder}/$base.$ext');
+        await file.writeAsBytes(bytes);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Guardado en ${widget.outputFolder}'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        await FileSaver.instance.saveFile(
+          name: base,
+          bytes: bytes,
+          ext: ext,
+          mimeType: isWav ? MimeType.other : MimeType.mp3,
+          customMimeType: isWav ? 'audio/wav' : null,
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -138,7 +170,7 @@ class _BatchResultListState extends State<BatchResultList> {
                   ),
                 ),
                 title: Text(
-                  chunk.filename,
+                  _buildFileName(chunk),
                   style: const TextStyle(
                       fontSize: 12, fontFamily: 'monospace'),
                   overflow: TextOverflow.ellipsis,

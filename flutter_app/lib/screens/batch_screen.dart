@@ -28,6 +28,7 @@ class BatchScreen extends StatefulWidget {
 
 class _BatchScreenState extends State<BatchScreen> {
   final _textController = TextEditingController();
+  final _fileNameController = TextEditingController();
   final _scrollController = ScrollController();
 
   late EngineInfo? _selectedEngine;
@@ -54,6 +55,7 @@ class _BatchScreenState extends State<BatchScreen> {
   void dispose() {
     _pollTimer?.cancel();
     _textController.dispose();
+    _fileNameController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -102,13 +104,14 @@ class _BatchScreenState extends State<BatchScreen> {
     });
 
     try {
+      final baseName = _fileNameController.text.trim();
       final result = await BatchService.startBatch(
         text: text,
         mode: widget.mode,
         engine: _selectedEngine!.id,
         voice: _selectedVoice!.id,
         speed: _speed,
-        outputName: 'batch',
+        outputName: baseName.isNotEmpty ? baseName : 'batch',
       );
 
       final jobId = result['job_id'] as String;
@@ -218,6 +221,8 @@ class _BatchScreenState extends State<BatchScreen> {
                 _buildSettings(scheme),
                 const SizedBox(height: 16),
                 _buildFolderPicker(scheme),
+                const SizedBox(height: 16),
+                _buildFileNameInput(scheme),
                 const SizedBox(height: 20),
                 _buildStartButton(scheme, isRunning),
                 if (_error != null) ...[
@@ -236,6 +241,8 @@ class _BatchScreenState extends State<BatchScreen> {
                   BatchResultList(
                     jobId: _jobId!,
                     chunks: _jobStatus!.chunks,
+                    outputFolder: _outputFolder,
+                    baseName: _fileNameController.text.trim(),
                   ),
                 ],
                 const SizedBox(height: 40),
@@ -440,6 +447,58 @@ class _BatchScreenState extends State<BatchScreen> {
         ),
       ],
     ).animate().fadeIn(delay: 150.ms);
+  }
+
+  Widget _buildFileNameInput(ColorScheme scheme) {
+    final baseName = _fileNameController.text.trim();
+    final chunks = _estimatedChunks;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Nombre de los archivos',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _fileNameController,
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            hintText: 'Ej: mi_historia  →  mi_historia_parte_1.wav',
+            filled: true,
+            fillColor: scheme.surfaceContainerHighest,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: scheme.primary, width: 2),
+            ),
+            prefixIcon: const Icon(Icons.drive_file_rename_outline, size: 18),
+          ),
+        ),
+        if (baseName.isNotEmpty && chunks > 0) ...[
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(Icons.info_outline,
+                  size: 14,
+                  color: scheme.onSurface.withValues(alpha: 0.6)),
+              const SizedBox(width: 6),
+              Text(
+                'Se crearán: ${baseName}_parte_1  …  ${baseName}_parte_$chunks',
+                style: TextStyle(
+                    fontSize: 12,
+                    color: scheme.onSurface.withValues(alpha: 0.7)),
+              ),
+            ],
+          ),
+        ],
+      ],
+    ).animate().fadeIn(delay: 160.ms);
   }
 
   Widget _buildStartButton(ColorScheme scheme, bool isRunning) {
